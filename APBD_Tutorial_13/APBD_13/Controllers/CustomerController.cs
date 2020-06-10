@@ -1,6 +1,7 @@
 ﻿using APBD_13.DTO;
 using APBD_13.Entities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.AspNetCore.Routing;
 using System;
 using System.Collections.Generic;
@@ -15,28 +16,56 @@ namespace APBD_13.Controllers
     public class CustomerController : ControllerBase
     {
         private readonly CustomerDbContext _customerDbContext;
-        public GetOrderRequest orderRequest;
         public CustomerController(CustomerDbContext customerDbContext)
         {
             _customerDbContext = customerDbContext;
         }
         [HttpGet("order/{cname}")]
-        public IActionResult GetOrders(String cname ) 
+        public IActionResult GetOrders(String cname) 
         {
+            GetOrderRequest orderRequest = new GetOrderRequest();
             var name = _customerDbContext.Customers.Where(d => d.Name.Equals(cname)).ToList().FirstOrDefault();
             /*string customerName, GetOrderRequest orderRequest*/
 
-            if (string.IsNullOrWhiteSpace(name.Name))
+            if (name == null)
             {
-                return Ok("That customer does not exist" + _customerDbContext.Orders.ToList());
+                return BadRequest("Such a person does not exist");
+            }
+            else if (cname == " ")
+            {
+                var order_list = new List<GetOrderRequest>();
+                var order = (from item in _customerDbContext.Orders
+                             select item).ToList();
+                foreach(var item in order)
+                {
+                    var conf_order = _customerDbContext.Confectionaries_Order.Where(e => e.IdOrder.Equals(item.IdOrder)).ToList().FirstOrDefault();
+                    var conf = _customerDbContext.Confectionaries.Where(e => e.IdConfectionary.Equals(conf_order.IdConfection)).ToList().FirstOrDefault();
+
+                    orderRequest.IdOrder = item.IdOrder;
+                    orderRequest.DateAccepted = item.DateAccepted;
+                    orderRequest.DateFinished = item.DateFinished;
+                    orderRequest.QuantityOfConfectionary = conf_order.Quantity;
+                    orderRequest.IdConfectionary = conf.IdConfectionary;
+                    order_list.Add(orderRequest);
+                }
+                
+               
+                return Ok(order_list);
             }
             else
             {
-                
+
                 var order = _customerDbContext.Orders.Where(d => d.IdClient.Equals(name.IdClient)).ToList().FirstOrDefault();
                 var conf_order = _customerDbContext.Confectionaries_Order.Where(e => e.IdOrder.Equals(order.IdOrder)).ToList().FirstOrDefault();
                 var conf = _customerDbContext.Confectionaries.Where(e => e.IdConfectionary.Equals(conf_order.IdConfection)).ToList().FirstOrDefault();
-                return Ok("Order info: " + order + " Confectionary info: " + conf);
+
+                orderRequest.IdOrder = order.IdOrder;
+                orderRequest.DateAccepted = order.DateAccepted;
+                orderRequest.DateFinished = order.DateFinished;
+                orderRequest.QuantityOfConfectionary = conf_order.Quantity;
+                orderRequest.IdConfectionary = conf.IdConfectionary;
+
+                return Ok(orderRequest);
 
             }
             
@@ -47,8 +76,8 @@ namespace APBD_13.Controllers
             Order order = new Order();
             Confectionary newConfectionary = new Confectionary();
             Confectionary_Order newconfectionary_Order = new Confectionary_Order();
-            /*newconfectionary_Order.IdConfection = newConfectionary.IdConfectionary;
-            newconfectionary_Order.IdOrder = order.IdOrder;*/
+            newconfectionary_Order.IdConfection = newConfectionary.IdConfectionary;
+            newconfectionary_Order.IdOrder = order.IdOrder;
 
 
 
@@ -69,10 +98,10 @@ namespace APBD_13.Controllers
             {
                 newConfectionary.Name = confectionary.Name;
                 newconfectionary_Order.Notes = confectionary.Notes;
-                
+
                 _customerDbContext.Add(order);
-                /*_customerDbContext.Add(newConfectionary);
-                _customerDbContext.Add(newconfectionary_Order);*/
+                _customerDbContext.Add(newConfectionary);
+                _customerDbContext.Add(newconfectionary_Order);
                 _customerDbContext.SaveChanges();
 
                 return Ok("Order added");
@@ -81,7 +110,7 @@ namespace APBD_13.Controllers
             {
                 return BadRequest("Product mentioned does not exist");
             }
-            
+
 
 
         }

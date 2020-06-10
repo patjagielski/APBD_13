@@ -8,8 +8,8 @@ namespace APBD_13
     public class GetOrderRequest
     {
         public int IdOrder { get; set; }
-        public DateTime DateAccepted { get; set; }
-        public DateTime DateFinished { get; set; }
+        public string DateAccepted { get; set; }
+        public string DateFinished { get; set; }
         public int IdConfectionary { get; set; }
         public int QuantityOfConfectionary { get; set; }
 
